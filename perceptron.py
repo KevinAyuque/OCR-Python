@@ -1,7 +1,9 @@
 import numpy as np
+import numpy
 from PIL import Image
+from numpy import genfromtxt
 
-threshold = 0
+threshold = 0.5
 
 training_n = 5
 image_width=7
@@ -39,12 +41,16 @@ def blockshaped(arr, nrows, ncols):
                .swapaxes(1,2)
                .reshape(-1, nrows, ncols))
                
+
+my_data = genfromtxt('matriz.csv', delimiter = ',')
 newt = blockshaped(total_input, 9, 7)
 #print(newt)
 #print(newt[2])
 #print(exxx.swapaxes(0,2))
 #print(exxx)
 #print(arr.flatten())
+
+
 
 b = np.zeros(output_n)
 w = np.zeros((input_n, output_n))
@@ -64,8 +70,9 @@ def train( input, output ):
     while(stopping_condition == False):
         stopping_condition = True
         for i in range(0, input_n):
+            y_in = np.zeros(output_n)
             for j in range(0, output_n):
-                y_in = np.zeros(output_n)
+                
                 #print(x)
                 #print(w[:,j])
                 y_in[j] = b[j] + np.dot(x, w[:,j])
@@ -78,6 +85,7 @@ def train( input, output ):
                     
                     if old_w == w[i][j]:
                         stopping_condition = False
+                        print "No weight change"
         print "Epoch"
    
     print(b)
@@ -105,3 +113,5 @@ for input in newt:
     
     if output_goal == 7:
         output_goal = 0
+np.set_printoptions(threshold=numpy.nan)
+print newt
