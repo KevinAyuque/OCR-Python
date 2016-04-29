@@ -3,96 +3,38 @@ import numpy
 from PIL import Image
 from numpy import genfromtxt
 
-threshold = 0.5
-
 training_n = 5
 image_width=7
 image_height = 9
+
+# Cantidad de input units
 input_n = image_width * image_height
+
+# Cantidad de output units 
 output_n = 7
 
-#im = Image.open("letter_d.png").convert("L")
-im = Image.open("input.png").convert("L")
-ar = np.array(im)
-total_input = np.array(ar, dtype=int)
-
-total_input[total_input == 0] = 1
-total_input[total_input == 255] = -1
-#print(total_input)
-#print(total_input.reshape((45, 7, 7)))
-
-ex = np.arange(24)
-#print(ex)
-exx = ex.reshape(6, 4)
-#rint(exx)
-exxx = exx.reshape(3,2,2,2).swapaxes(1,2)
-
-#newt = total_input.reshape(5,7,9,7).swapaxes(1,3)
-def blockshaped(arr, nrows, ncols):
-    """
-    Return an array of shape (n, nrows, ncols) where
-    n * nrows * ncols = arr.size
-
-    If arr is a 2D array, the returned array should look like n subblocks with
-    each subblock preserving the "physical" layout of arr.
-    """
-    h, w = arr.shape
-    return (arr.reshape(h//nrows, nrows, -1, ncols)
-               .swapaxes(1,2)
-               .reshape(-1, nrows, ncols))
-               
-
-my_data = genfromtxt('matriz.csv', delimiter = ',')
-newt = blockshaped(total_input, 9, 7)
-#print(newt)
-#print(newt[2])
-#print(exxx.swapaxes(0,2))
-#print(exxx)
-#print(arr.flatten())
-
-
-
+threshold = 0
 b = np.zeros(output_n)
 w = np.zeros((input_n, output_n))
-
 t = np.zeros((output_n, output_n))
 t.fill(-1)
 
 for i in range(0, output_n):
     t[i, i] = 1
+    
+def blockshaped(arr, nrows, ncols):
+    h, w = arr.shape
+    return (arr.reshape(h//nrows, nrows, -1, ncols)
+               .swapaxes(1,2)
+               .reshape(-1, nrows, ncols))
+#Creado por unutbu de Stack Overflow
 
-def train( input, output ):
-    x = input
+def imageToArray(image):
+    image_array = np.array(image, dtype=int)
+    image_array[image_array < 255] = 1
+    image_array[image_array == 255] = -1
+    return image_array
     
-    
-    print "Training starts"
-    stopping_condition = False
-    while(stopping_condition == False):
-        stopping_condition = True
-        for i in range(0, input_n):
-            y_in = np.zeros(output_n)
-            for j in range(0, output_n):
-                
-                #print(x)
-                #print(w[:,j])
-                y_in[j] = b[j] + np.dot(x, w[:,j])
-                y = activation(y_in[j], threshold)
-        
-                if t[output][j] != y:
-                    b[j] = b[j] + t[output][j]
-                    old_w = w[i][j]
-                    w[i][j] = w[i][j] + t[output][j]*x[i]
-                    
-                    if old_w == w[i][j]:
-                        stopping_condition = False
-                        print "No weight change"
-        print "Epoch"
-   
-    print(b)
-    print(w)
-    
-    print "Training complete"
-
 def activation(y_in, threshold):
     if y_in > threshold:
         return 1
@@ -100,18 +42,77 @@ def activation(y_in, threshold):
         return 0
     elif y_in < threshold:
         return -1
+        
+def interpretResult(result):
+    for i in range(0, result.size):
+        if result[i] == 1:
+            if i == 0:
+                print "Puede ser A"
+            elif i == 1:
+                print "Puede ser B"
+            elif i == 2:
+                print "Puede ser C"
+            elif i == 3:
+                print "Puede ser D"
+            elif i == 4:
+                print "Puede ser E"
+            elif i == 5:
+                print "Puede ser J"
+            else:
+                print "Puede ser K"
 
+def train( input, output ):
+    x = input
 
-#train(np.ones(63),0)
+    print "Training starts"
+    stopping_condition = False
+    while(stopping_condition == False):
+        stopping_condition = True
+        for i in range(0, input_n):
+            y_in = np.zeros(output_n)
+            y = np.zeros(output_n)
+            
+            for j in range(0, output_n):
+                y_in[j] = b[j] + np.dot(x, w[:,j])
+                y[j] = activation(y_in[j], threshold)
+                
+            for j in range(0, output_n):
+                if t[output][j] != y[j]:
+                    b[j] = b[j] + t[output][j]
+                    for i2 in range(0, input_n):
+                        old_w = w[i2][j]
+                        w[i2][j] = w[i2][j] + t[output][j]*x[i2]
+                    
+                        if old_w != w[i2][j]:
+                            stopping_condition = False
+        print "Epoch"
+    print "Training complete"
+
+def classify(input):
+    x = input
+    y_in = np.zeros(output_n)
+    y = np.zeros(output_n)
+    for j in range(0, output_n):
+        y_in[j] = b[j] + np.dot(x, w[:,j])
+        y[j] = activation(y_in[j], threshold)
+    return y
+    
+training_data_image = Image.open("input.png").convert("L")
+training_data_array = imageToArray(training_data_image)
+training_data_array = blockshaped(training_data_array, image_height, image_width)
 
 output_goal = 0
-for input in newt:
-    print(output_goal)
-    print(input)
+for input in training_data_array:
     train(input.flatten(), output_goal)
     output_goal += 1
     
     if output_goal == 7:
         output_goal = 0
-np.set_printoptions(threshold=numpy.nan)
-print newt
+        
+character_image = Image.open("test/j_1.png").convert("L")
+#character_image.show()
+character_array = imageToArray(character_image)
+character_result = classify(character_array.flatten())
+#print(character_array)
+#print(character_result)
+interpretResult(character_result)
